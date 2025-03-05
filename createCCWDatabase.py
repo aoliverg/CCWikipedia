@@ -126,52 +126,74 @@ text=""
 title=""
 text=""
 FirstID=False
-with bzopen(wikidump, "r") as xml_file:
-    parser = et.iterparse(xml_file, events=('end','start'))
+with bz2.BZ2File("wikidump.xml.bz2", "r") as xml_file:
+    parser = et.iterparse(xml_file, events=("end", "start"))
+    FirstID = False
+    id, title, text = "", "", ""
+    
     for event, elem in parser:
-        if elem.tag=="{http://www.mediawiki.org/xml/export-0.10/}title":
-            title=elem.text
-        if elem.tag=="{http://www.mediawiki.org/xml/export-0.10/}id" and not FirstID:
-            id=elem.text
-            FirstID=True
-        if elem.tag=="{http://www.mediawiki.org/xml/export-0.10/}text":
-            text=elem.text
-        if event=="end" and elem.tag=="{http://www.mediawiki.org/xml/export-0.10/}page":
-            if not id=="" and not title=="" and not text=="":
+        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}title":
+            title = elem.text
+        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}id" and not FirstID:
+            id = elem.text
+            FirstID = True
+        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}text":
+            text = elem.text
+        if event == "end" and elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}page":
+            if id and title and text:
                 try:
-                    categoriesbrut=re.findall(r"\[\[Category:[^\]]+?\]\]", text)
-                    categories=[]
-                    for cat in categoriesbrut:
-                        cat=cat.replace("[[Category:","").replace("]]","").strip()
-                        categories.append(cat)
+                    categoriesbrut = re.findall(r"\[\[Category:[^\]]+?\]\]", text)
+                    categories = [
+                        cat.replace("[[Category:", "").replace("]]", "").strip()
+                        for cat in categoriesbrut
+                    ]
                     categories.sort()
-                    Quality="Regular"
-                    size=len(text)
-                    if text.find("{{Featured article}}")>-1: Quality="Featured"
-        
-                    if text.find("{{Good article}}")>-1: Quality="Good"
-                    if text.find("-stub}}")>-1: Quality="Stub"
                     
-                    cont+=1
+                    Quality = "Regular"
+                    size = len(text)
+                    if "{{Featured article}}" in text:
+                        Quality = "Featured"
+                    elif "{{Good article}}" in text:
+                        Quality = "Good"
+                    elif "-stub}}" in text:
+                        Quality = "Stub"
                     
-                    cur.execute("INSERT OR IGNORE INTO titles (ident,title) VALUES (?,?)",(id,title))
-                    cur.execute("INSERT OR IGNORE INTO qualities (ident,Quality) VALUES (?,?)",(id,Quality))
-                    cur.execute("INSERT OR IGNORE INTO sizes (ident,size) VALUES (?,?)",(id,size))
+                    cont += 1
+                    
+                    cur.execute(
+                        "INSERT OR IGNORE INTO titles (ident, title) VALUES (?, ?)",
+                        (id, title),
+                    )
+                    cur.execute(
+                        "INSERT OR IGNORE INTO qualities (ident, Quality) VALUES (?, ?)",
+                        (id, Quality),
+                    )
+                    cur.execute(
+                        "INSERT OR IGNORE INTO sizes (ident, size) VALUES (?, ?)",
+                        (id, size),
+                    )
                     
                     for cat in categories:
-                        cur.execute("INSERT OR IGNORE INTO categories (ident,category) VALUES (?,?)",(id,cat))
-                    if cont==10000:
-                        print("Commit Wikipedia")
-                        conn.commit()
-                        cont=0
-                    id=""
-                    title=""
-                    text=""
-                    FirstID=False
-                    elem.clear()
-                except:
-                    print("ERROR",sys.exc_info())
+                        cur.execute(
+                            "INSERT OR IGNORE INTO categories (ident, category) VALUES (?, ?)",
+                            (id, cat),
+                        )
                     
-                   
-conn.commit()
+                    if cont == 10000:
+                        print("Committing to database...")
+                        conn.commit()
+                        cont = 0
+                    
+                    # Clear variables to release memory
+                    id, title, text = "", "", ""
+                    FirstID = False
+                    
+                except Exception as e:
+                    print("ERROR:", e)
+                
+                # Clear the element to release memory
+                elem.clear()
+                
+    # Final commit after processing all pages
+    conn.commit()
 print("FINISHED")
