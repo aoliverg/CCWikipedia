@@ -19,6 +19,7 @@ import sqlite3
 import os
 import gzip
 import re
+import bz2
 from bz2 import BZ2File as bzopen
 import codecs
 from lxml import etree as et
@@ -67,7 +68,7 @@ cur.execute("CREATE TABLE sizes (id INTEGER PRIMARY KEY AUTOINCREMENT, ident INT
 cur.execute("CREATE INDEX index_size ON sizes(ident)")
 
 conn.commit()
-
+'''
 #CATEGORY RELATIONS
 with bzopen(skoscategories, "r") as textfile:
     cont=0
@@ -119,7 +120,7 @@ for line in f:
 print("Finished langlinks")
             
 conn.commit()
-
+'''
 #WIKIPEDIA
 cont=0
 text=""
