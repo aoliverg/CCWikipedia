@@ -26,6 +26,9 @@ from lxml import etree as et
 import sys
 import argparse
 
+def strip_namespace(tag):
+    """Elimina el namespace del nombre del elemento"""
+    return tag.split('}')[-1] if '}' in tag else tag
 
 parser = argparse.ArgumentParser(description='Script for the creation of the database for the programs to creata comparable corpora from Wikipedia')
 parser.add_argument("-s",'--skoscategories', action="store", dest="skoscategories", help='The skos_categories_en.ttl.bz2 file (from https://downloads.dbpedia.org/).',required=True)
@@ -133,9 +136,9 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     id, title, text = "", "", ""
     
     for event, elem in parser:
-        print(elem.tag)
-        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}title":
+        if strip_namespace(elem.tag) == "title":
             title = elem.text
+            print("TITLE:",title)
         if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}id" and not FirstID:
             id = elem.text
             FirstID = True
