@@ -138,6 +138,8 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     for event, elem in parser:
         if strip_namespace(elem.tag) == "title":
             title = elem.text
+            print(cont,title)
+            cont+=1
         if strip_namespace(elem.tag) == "id" and not FirstID:
             id = elem.text
             FirstID = True
@@ -162,7 +164,7 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
                     elif "-stub}}" in text:
                         Quality = "Stub"
                     
-                    cont += 1
+                    #cont += 1
                     
                     cur.execute(
                         "INSERT OR IGNORE INTO titles (ident, title) VALUES (?, ?)",
