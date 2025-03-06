@@ -138,13 +138,12 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     for event, elem in parser:
         if strip_namespace(elem.tag) == "title":
             title = elem.text
-            print("TITLE:",title)
-        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}id" and not FirstID:
+        if strip_namespace(elem.tag) == "id" and not FirstID:
             id = elem.text
             FirstID = True
-        if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}text":
+        if strip_namespace(elem.tag) == "text":
             text = elem.text
-        if event == "end" and elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}page":
+        if event == "end" and strip_namespace(elem.tag) == "page":
             if id and title and text:
                 try:
                     categoriesbrut = re.findall(r"\[\[Category:[^\]]+?\]\]", text)
