@@ -29,7 +29,7 @@ import argparse
 def strip_namespace(tag):
     """Elimina el namespace del nombre del elemento"""
     return tag.split('}')[-1] if '}' in tag else tag
-
+    
 parser = argparse.ArgumentParser(description='Script for the creation of the database for the programs to creata comparable corpora from Wikipedia')
 parser.add_argument("-s",'--skoscategories', action="store", dest="skoscategories", help='The skos_categories_en.ttl.bz2 file (from https://downloads.dbpedia.org/).',required=True)
 
@@ -71,7 +71,7 @@ cur.execute("CREATE TABLE sizes (id INTEGER PRIMARY KEY AUTOINCREMENT, ident INT
 cur.execute("CREATE INDEX index_size ON sizes(ident)")
 
 conn.commit()
-'''
+
 #CATEGORY RELATIONS
 with bzopen(skoscategories, "r") as textfile:
     cont=0
@@ -123,7 +123,7 @@ for line in f:
 print("Finished langlinks")
             
 conn.commit()
-'''
+
 #WIKIPEDIA
 cont=0
 text=""
@@ -138,70 +138,65 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     for event, elem in parser:
         if strip_namespace(elem.tag) == "title":
             title = elem.text
-            
-            cont+=1
         if strip_namespace(elem.tag) == "id" and not FirstID:
             id = elem.text
             FirstID = True
         if strip_namespace(elem.tag) == "text":
             text = elem.text
         if event == "end" and strip_namespace(elem.tag) == "page":
-            if id and title and text:
-                print(cont,title)
-                try:
-                    categoriesbrut = re.findall(r"\[\[Category:[^\]]+?\]\]", text)
-                    categories = [
-                        cat.replace("[[Category:", "").replace("]]", "").strip()
-                        for cat in categoriesbrut
-                    ]
-                    categories.sort()
-                    
-                    Quality = "Regular"
-                    size = len(text)
-                    if "{{Featured article}}" in text:
-                        Quality = "Featured"
-                    elif "{{Good article}}" in text:
-                        Quality = "Good"
-                    elif "-stub}}" in text:
-                        Quality = "Stub"
-                    
-                    #cont += 1
-                    
+            #if id and title and text:
+            try:
+                categoriesbrut = re.findall(r"\[\[Category:[^\]]+?\]\]", text)
+                categories = [
+                    cat.replace("[[Category:", "").replace("]]", "").strip()
+                    for cat in categoriesbrut
+                ]
+                categories.sort()
+                
+                Quality = "Regular"
+                size = len(text)
+                if "{{Featured article}}" in text:
+                    Quality = "Featured"
+                elif "{{Good article}}" in text:
+                    Quality = "Good"
+                elif "-stub}}" in text:
+                    Quality = "Stub"
+                
+                cont += 1
+                
+                cur.execute(
+                    "INSERT OR IGNORE INTO titles (ident, title) VALUES (?, ?)",
+                    (id, title),
+                )
+                cur.execute(
+                    "INSERT OR IGNORE INTO qualities (ident, Quality) VALUES (?, ?)",
+                    (id, Quality),
+                )
+                cur.execute(
+                    "INSERT OR IGNORE INTO sizes (ident, size) VALUES (?, ?)",
+                    (id, size),
+                )
+                
+                for cat in categories:
                     cur.execute(
-                        "INSERT OR IGNORE INTO titles (ident, title) VALUES (?, ?)",
-                        (id, title),
+                        "INSERT OR IGNORE INTO categories (ident, category) VALUES (?, ?)",
+                        (id, cat),
                     )
-                    cur.execute(
-                        "INSERT OR IGNORE INTO qualities (ident, Quality) VALUES (?, ?)",
-                        (id, Quality),
-                    )
-                    cur.execute(
-                        "INSERT OR IGNORE INTO sizes (ident, size) VALUES (?, ?)",
-                        (id, size),
-                    )
-                    
-                    for cat in categories:
-                        cur.execute(
-                            "INSERT OR IGNORE INTO categories (ident, category) VALUES (?, ?)",
-                            (id, cat),
-                        )
-                    
-                    
-                    
-                    # Clear variables to release memory
-                    
-            
-                    
-                except Exception as e:
-                    print("ERROR:", e)
-                id, title, text = "", "", ""
+                
+                if cont == 10000:
+                    print("Committing to database...")
+                    conn.commit()
+                    cont = 0
+                
+                # Clear variables to release memory
+                id, title, text = None, None, None
                 FirstID = False
-                # Clear the element to release memory
-        elem.clear()
-        if cont == 10000:
-            print("Committing to database...")
-            conn.commit()
-            cont = 0
+                
+            except Exception as e:
+                print("ERROR:", e)
+            
+            # Clear the element to release memory
+            elem.clear()
                 
     # Final commit after processing all pages
     conn.commit()
