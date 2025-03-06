@@ -133,6 +133,7 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     id, title, text = "", "", ""
     
     for event, elem in parser:
+        print(elem.tag)
         if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}title":
             title = elem.text
         if elem.tag == "{http://www.mediawiki.org/xml/export-0.10/}id" and not FirstID:
