@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #    createCCWDatabase
-#    Copyright (C) 2021  Antoni Oliver
+#    Copyright (C) 2025  Antoni Oliver
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ text=""
 title=""
 text=""
 FirstID=False
-with bz2.BZ2File("wikidump.xml.bz2", "r") as xml_file:
+with bz2.BZ2File(wikidump, "r") as xml_file:
     parser = et.iterparse(xml_file, events=("end", "start"))
     FirstID = False
     id, title, text = "", "", ""
