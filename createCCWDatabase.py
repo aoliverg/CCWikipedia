@@ -138,7 +138,7 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
     for event, elem in parser:
         if strip_namespace(elem.tag) == "title":
             title = elem.text
-            print(cont,title)
+            
             cont+=1
         if strip_namespace(elem.tag) == "id" and not FirstID:
             id = elem.text
@@ -147,6 +147,7 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
             text = elem.text
         if event == "end" and strip_namespace(elem.tag) == "page":
             if id and title and text:
+                print(cont,title)
                 try:
                     categoriesbrut = re.findall(r"\[\[Category:[^\]]+?\]\]", text)
                     categories = [
@@ -188,15 +189,15 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
                     
                     
                     # Clear variables to release memory
-                    id, title, text = "", "", ""
-                    FirstID = False
+                    
             
                     
                 except Exception as e:
                     print("ERROR:", e)
-                
+                id, title, text = "", "", ""
+                FirstID = False
                 # Clear the element to release memory
-                elem.clear()
+        elem.clear()
         if cont == 10000:
             print("Committing to database...")
             conn.commit()
