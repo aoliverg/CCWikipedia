@@ -185,20 +185,22 @@ with bz2.BZ2File(wikidump, "r") as xml_file:
                             (id, cat),
                         )
                     
-                    if cont == 10000:
-                        print("Committing to database...")
-                        conn.commit()
-                        cont = 0
+                    
                     
                     # Clear variables to release memory
                     id, title, text = "", "", ""
                     FirstID = False
+            
                     
                 except Exception as e:
                     print("ERROR:", e)
                 
                 # Clear the element to release memory
                 elem.clear()
+        if cont == 10000:
+            print("Committing to database...")
+            conn.commit()
+            cont = 0
                 
     # Final commit after processing all pages
     conn.commit()
